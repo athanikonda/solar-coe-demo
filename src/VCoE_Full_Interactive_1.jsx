@@ -79,15 +79,25 @@ export default function App(){
     const userMsg={role:"user",content:input.trim()};
     setMsgs(p=>[...p,userMsg]);setInput("");setLoading(true);
     try{
-      const r=await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:AI_SYS,
-          messages:[...msgs.filter(m=>m.role!=="assistant"||msgs.indexOf(m)>0),userMsg].slice(-10)})
-      });
-      const d=await r.json();
-      const text=d.content?.map(c=>c.text||"").join("")||"Sorry, I couldn't process that. Please try again.";
-      setMsgs(p=>[...p,{role:"assistant",content:text}]);
-    }catch(e){setMsgs(p=>[...p,{role:"assistant",content:"Connection error. Please try again."}]);}
+      const r = await fetch("/api/chat", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    messages: [
+      ...msgs.slice(-10),
+      userMsg
+    ]
+  })
+});
+
+const d = await r.json();
+
+setMsgs(p => [
+  ...p,
+  { role: "assistant", content: d.reply || "No response" }
+]);    }catch(e){setMsgs(p=>[...p,{role:"assistant",content:"Connection error. Please try again."}]);}
     setLoading(false);
   }
 
