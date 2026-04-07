@@ -1,20 +1,14 @@
 export default async function handler(req, res) {
-  // ✅ Handle GET (for testing in browser)
   if (req.method === "GET") {
     return res.status(200).json({ message: "API is working" });
   }
 
-  // ✅ Only allow POST for chat
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
     const { messages } = req.body;
-
-    if (!messages) {
-      return res.status(400).json({ error: "Messages missing" });
-    }
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -27,7 +21,7 @@ export default async function handler(req, res) {
         messages: [
           {
             role: "system",
-            content: `You are a Solar Centre of Excellence assistant. Provide India-focused insights on solar energy, policy, grid, storage, and finance.`
+            content: "You are a helpful Solar Centre of Excellence assistant for India."
           },
           ...messages
         ]
@@ -36,11 +30,29 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    return res.status(200).json({
-      reply: data.choices?.[0]?.message?.content || "No response"
-    });
+    // 🔍 DEBUG LOG (important)
+    console.log("OpenAI response:", JSON.stringify(data));
+
+    // ❗ HANDLE ERROR FROM OPENAI
+    if (data.error) {
+      return res.status(500).json({
+        reply: "OpenAI Error: " + data.error.message
+      });
+    }
+
+    const reply = data?.choices?.[0]?.message?.content;
+
+    if (!reply) {
+      return res.status(500).json({
+        reply: "No response from model"
+      });
+    }
+
+    return res.status(200).json({ reply });
 
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({
+      reply: "Server error: " + err.message
+    });
   }
 }
